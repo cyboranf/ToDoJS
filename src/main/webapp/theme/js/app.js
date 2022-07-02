@@ -172,10 +172,28 @@ function renderOperation(ul, status, operationId, operationDescription, timeSpen
         add15minButton.innerText = '+15m';
         controlDiv.appendChild(add15minButton);
 
+        add15minButton.addEventListener('click', function() {
+            apiUpdateOperation(operationId, operationDescription, timeSpent + 15).then(
+                function(response) {
+                    time.innerText = formatTime(response.data.timeSpent);
+                    timeSpent = response.data.timeSpent;
+                }
+            );
+        });
+
         const add1hButton = document.createElement('button');
         add1hButton.className = 'btn btn-outline-success btn-sm mr-2';
         add1hButton.innerText = '+1h';
         controlDiv.appendChild(add1hButton);
+
+        add1hButton.addEventListener('click', function() {
+            apiUpdateOperation(operationId, operationDescription, timeSpent + 60).then(
+                function(response) {
+                    time.innerText = formatTime(response.data.timeSpent);
+                    timeSpent = response.data.timeSpent;
+                }
+            );
+        });
 
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn btn-outline-danger btn-sm';
@@ -275,6 +293,24 @@ function apiUpdateTask(taskId, title, description, status) {
         {
             headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: title, description: description, status: status }),
+            method: 'PUT'
+        }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    );
+}
+
+function apiUpdateOperation(operationId, description, timeSpent) {
+    return fetch(
+        apiHost + '/api/operations/' + operationId,
+        {
+            headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: description, timeSpent: timeSpent }),
             method: 'PUT'
         }
     ).then(
