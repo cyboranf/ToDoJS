@@ -166,19 +166,22 @@ function renderOperation(ul, status, operationId, operationDescription, timeSpen
         add15minButton.className = 'btn btn-outline-success btn-sm mr-2';
         add15minButton.innerText = '+15m';
         controlDiv.appendChild(add15minButton);
-        // tu dodamy obsługę kliknięcia przycisku "+15m"
 
         const add1hButton = document.createElement('button');
         add1hButton.className = 'btn btn-outline-success btn-sm mr-2';
         add1hButton.innerText = '+1h';
         controlDiv.appendChild(add1hButton);
-        // tu dodamy obsługę kliknięcia przycisku "+1h"
 
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn btn-outline-danger btn-sm';
         deleteButton.innerText = 'Delete';
         controlDiv.appendChild(deleteButton);
-        // tu dodamy obsługę kliknięcia przycisku "Delete"
+
+        deleteButton.addEventListener('click', function() {
+            apiDeleteOperation(operationId).then(
+                function() { li.parentElement.removeChild(li); }
+            );
+        });
     }
 }
 
@@ -242,4 +245,21 @@ function apiCreateOperationForTask(taskId, description) {
             return resp.json();
         }
     );
+}
+
+function apiDeleteOperation(operationId) {
+    return fetch(
+        apiHost + '/api/operations/' + operationId,
+        {
+            headers: { Authorization: apiKey },
+            method: 'DELETE'
+        }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    )
 }
