@@ -43,28 +43,35 @@ function renderTask(taskId, title, description, status) {
     const headerRightDiv = document.createElement('div');
     headerDiv.appendChild(headerRightDiv);
 
-    // kiedy zadanie ma status "closed", nie chcemy widzieć przycisku "Finish"
     if(status == 'open') {
         const finishButton = document.createElement('button');
         finishButton.className = 'btn btn-dark btn-sm js-task-open-only';
         finishButton.innerText = 'Finish';
         headerRightDiv.appendChild(finishButton);
-        // tu znajdzie się obsługa kliknięcia przycisku "Finish"
     }
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'btn btn-outline-danger btn-sm ml-2';
     deleteButton.innerText = 'Delete';
     headerRightDiv.appendChild(deleteButton);
-    // tu znajdzie się obsługa kliknięcia przycisku "Delete"
+    deleteButton.addEventListener('click', function() {
+        apiDeleteTask(taskId).then(function() { section.parentElement.removeChild(section); });
+    });
 
     const ul = document.createElement('ul');
     ul.className = 'list-group list-group-flush';
     section.appendChild(ul);
 
-    // tu znajdzie się kod który wypełni (utworzoną 4 linie wyżej) listę <ul>
+    apiListOperationsForTask(taskId).then(
+        function(response) {
+            response.data.forEach(
+                function(operation) {
+                    renderOperation(ul, status, operation.id, operation.description, operation.timeSpent);
+                }
+            )
+        }
+    )
 
-    // formularz dodawania nowych operacji chcemy widzieć tylko w otwartych zadaniach
     if(status == 'open') {
         const addOperationDiv = document.createElement('div');
         addOperationDiv.className = 'card-body js-task-open-only';
@@ -93,7 +100,20 @@ function renderTask(taskId, title, description, status) {
         addButton.innerText = 'Add';
         inputGroupAppend.appendChild(addButton);
 
-        // tu znajdzie się obsługa wysłania formularza
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            apiCreateOperationForTask(taskId, descriptionInput.value).then(
+                function(response) {
+                    renderOperation(
+                        ul,
+                        status,
+                        response.data.id,
+                        response.data.description,
+                        response.data.timeSpent
+                    );
+                }
+            )
+        });
     }
 }
 
@@ -108,3 +128,118 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     );
 });
+
+function apiListOperationsForTask(taskId) {
+    return fetch(
+        apiHost + '/api/tasks/' + taskId + '/operations',
+        { headers: { 'Authorization': apiKey } }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    );
+}
+
+function renderOperation(ul, status, operationId, operationDescription, timeSpent) {
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+    ul.appendChild(li);
+
+    const descriptionDiv = document.createElement('div');
+    descriptionDiv.innerText = operationDescription;
+    li.appendChild(descriptionDiv);
+
+    const time = document.createElement('span');
+    time.className = 'badge badge-success badge-pill ml-2';
+    time.innerText = formatTime(timeSpent);
+    descriptionDiv.appendChild(time);
+
+    if(status == "open") {
+        const controlDiv = document.createElement('div');
+        controlDiv.className = 'js-task-open-only';
+        li.appendChild(controlDiv);
+
+        const add15minButton = document.createElement('button');
+        add15minButton.className = 'btn btn-outline-success btn-sm mr-2';
+        add15minButton.innerText = '+15m';
+        controlDiv.appendChild(add15minButton);
+        // tu dodamy obsługę kliknięcia przycisku "+15m"
+
+        const add1hButton = document.createElement('button');
+        add1hButton.className = 'btn btn-outline-success btn-sm mr-2';
+        add1hButton.innerText = '+1h';
+        controlDiv.appendChild(add1hButton);
+        // tu dodamy obsługę kliknięcia przycisku "+1h"
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn btn-outline-danger btn-sm';
+        deleteButton.innerText = 'Delete';
+        controlDiv.appendChild(deleteButton);
+        // tu dodamy obsługę kliknięcia przycisku "Delete"
+    }
+}
+
+function formatTime(timeSpent) {
+    const hours = Math.floor(timeSpent / 60);
+    const minutes = timeSpent % 60;
+    if(hours > 0) {
+        return hours + 'h ' + minutes + 'm';
+    } else {
+        return minutes + 'm';
+    }
+}
+
+function apiCreateTask(title, description) {
+    return fetch(
+        apiHost + '/api/tasks',
+        {
+            headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title, description: description, status: 'open' }),
+            method: 'POST'
+        }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    );
+}
+
+function apiDeleteTask(taskId) {
+    return fetch(
+        apiHost + '/api/tasks/' + taskId,
+        {
+            headers: { Authorization: apiKey },
+            method: 'DELETE'
+        }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    )
+}
+function apiCreateOperationForTask(taskId, description) {
+    return fetch(
+        apiHost + '/api/tasks/' + taskId + '/operations',
+        {
+            headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: description, timeSpent: 0 }),
+            method: 'POST'
+        }
+    ).then(
+        function (resp) {
+            if(!resp.ok) {
+                alert('Wystąpił błąd! Otwórz devtools i zakładkę Sieć/Network, i poszukaj przyczyny');
+            }
+            return resp.json();
+        }
+    );
+}
